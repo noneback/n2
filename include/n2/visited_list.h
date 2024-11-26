@@ -16,6 +16,7 @@
 
 namespace n2 {
 
+// Wrapper for visit operation
 class VisitedList { 
 public:
     VisitedList(int size) : size_(size), mark_(1) {

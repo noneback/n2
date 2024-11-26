@@ -35,6 +35,7 @@ public:
     
     inline const float* GetData() const { return data_->GetRawData(); }
     
+    // GetFriends gets all adjcent node on level layer
     inline std::vector<HnswNode*>& GetFriends(int level) { return friends_at_layer_[level]; }
     inline void SetFriends(int level, std::vector<HnswNode*>& new_friends) {
         friends_at_layer_[level].swap(new_friends);

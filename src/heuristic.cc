@@ -34,6 +34,7 @@ void NaiveNeighborSelectingPolicies::Select(size_t m, size_t dim, bool select_nn
     }
 }
 
+// HeuristicNeighborSelectinMethods, it selects m nodes and reinsert into result.
 template<typename DistFuncType>
 void HeuristicNeighborSelectingPolicies<DistFuncType>::Select(size_t m, size_t dim, bool select_nn, 
                                                               priority_queue<FurtherFirst>& result) {

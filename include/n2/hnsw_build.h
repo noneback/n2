@@ -65,21 +65,21 @@ protected:
     std::shared_ptr<spdlog::logger> logger_;
     
     const std::string n2_signature = "TOROS_N2@N9R4";
-    size_t m_ = 12;
-    size_t max_m_ = 12;
-    size_t max_m0_ = 24;
-    size_t ef_construction_ = 150;
+    size_t m_ = 12; // max connections for one single node
+    size_t max_m_ = 12; // TODO(noneback): xxx
+    size_t max_m0_ = 24; // TODO(noneback): max connections for one single node on layer 0, I guess.
+    size_t ef_construction_ = 150; // extention factor in construnction: max num of nearest nodes selected while exploration
     float level_mult_ = 1 / log(1.0*m_);
     int n_threads_ = 1;
     NeighborSelectingPolicy neighbor_selecting_ = NeighborSelectingPolicy::HEURISTIC;
     NeighborSelectingPolicy post_neighbor_selecting_ = NeighborSelectingPolicy::HEURISTIC_SAVE_REMAINS;
     GraphPostProcessing post_graph_process_ = GraphPostProcessing::SKIP;
     
-    int max_level_ = 0;
-    HnswNode* enterpoint_ = nullptr;
-    std::vector<Data> data_list_;
-    std::vector<HnswNode*> nodes_;
-    int num_nodes_ = 0;
+    int max_level_ = 0; // how many layers
+    HnswNode* enterpoint_ = nullptr; // entrypoint of whole graph
+    std::vector<Data> data_list_; // input data buffer
+    std::vector<HnswNode*> nodes_; // final hnsw nodes
+    int num_nodes_ = 0; 
     size_t data_dim_ = 0;
     DistanceKind metric_;
 

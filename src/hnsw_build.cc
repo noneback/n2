@@ -185,7 +185,7 @@ void HnswBuild::BuildGraph(bool reverse) {
         } else {
             #pragma omp for schedule(dynamic,128)
             for (size_t i = 1; i < data_list_.size(); ++i) {
-                int level = GetRandomNodeLevel();
+                int level = GetRandomNodeLevel(); // each node has a random level num.
                 HnswNode* qnode = new HnswNode(i, &data_list_[i], level, max_m_, max_m0_);
                 nodes_[i] = qnode;
                 InsertNode(qnode, visited_list);
@@ -273,17 +273,19 @@ void HnswBuildImpl<DistFuncType>::InsertNode(HnswNode* qnode, VisitedList* visit
     int cur_level = qnode->GetLevel();
     unique_lock<mutex> max_level_lock(max_level_guard_, defer_lock);
     if (cur_level > max_level_)
-        max_level_lock.lock();
+        max_level_lock.lock(); // cuz max_level will be change to cur_level
 
     int max_level_copy = max_level_;
-    vector<HnswNode*> enterpoints;
+    vector<HnswNode*> enterpoints;  // TODO(noneback): what is this for? it only has one item.
 
     if (cur_level < max_level_copy) {
         HnswNode* cur_node = enterpoint_;
         float d = dist_func_(qnode, cur_node, data_dim_);
         float cur_dist = d;
+        // find nearest node over whole graph
         for (auto i = max_level_copy; i > cur_level; --i) {
             bool changed = true;
+            // find nearest node over whole level.
             while (changed) {
                 changed = false;
                 unique_lock<mutex> local_lock(cur_node->GetAccessGuard());
@@ -301,24 +303,27 @@ void HnswBuildImpl<DistFuncType>::InsertNode(HnswNode* qnode, VisitedList* visit
                 }
             }
         }
-        enterpoints.push_back(cur_node);
+        enterpoints.push_back(cur_node); // push the nearset node into enterpoints 
     } else {
         enterpoints.push_back(enterpoint_);
     }
-    
+    // Now, enterpoints only has one entrypoint.
     _mm_prefetch(&selecting_policy_, _MM_HINT_T0);
     for (auto i = min(max_level_copy, cur_level); i >= 0; --i) {
-        priority_queue<FurtherFirst> result;
-        SearchAtLayer(qnode, enterpoints, i, visited_list, result);
+        priority_queue<FurtherFirst> result;  // stores selected candidates
+        SearchAtLayer(qnode, enterpoints, i, visited_list, result); // search quailfied candidates from enterpoints.
 
         enterpoints.clear();
+        // set result as the entrypoints of next layer
         priority_queue<FurtherFirst> next_enterpoints = result;
         while (next_enterpoints.size() > 0) {
             auto* top_node = next_enterpoints.top().GetNode();
             next_enterpoints.pop();
             enterpoints.push_back(top_node);
         }
-
+        // select nodes from result based on some strategy(like methods on HNSW paper)
+        // noted: selected nodes should be less than m;
+        // Bidirectionally Link qnode with those candidates.
         selecting_policy_->Select(m_, data_dim_, i == 0, result);
         while (result.size() > 0) {
             auto* top_node = result.top().GetNode();
@@ -327,13 +332,15 @@ void HnswBuildImpl<DistFuncType>::InsertNode(HnswNode* qnode, VisitedList* visit
             Link(qnode, top_node, i);
         }
     }
-
+    // update enterpoint of whole graph
+    // it should be the node which across most of layers
     if (cur_level > enterpoint_->GetLevel()) {
         enterpoint_ = qnode;
         max_level_ = cur_level;
     }
 }
 
+// search for candidates in this layer.
 template<typename DistFuncType>
 void HnswBuildImpl<DistFuncType>::SearchAtLayer(HnswNode* qnode, const vector<HnswNode*>& enterpoints, int level, 
                                                 VisitedList* visited_list, priority_queue<FurtherFirst>& result) {
@@ -351,7 +358,7 @@ void HnswBuildImpl<DistFuncType>::SearchAtLayer(HnswNode* qnode, const vector<Hn
         const CloserFirst& candidate = candidates.top();
         float lower_bound = result.top().GetDistance();
         if (candidate.GetDistance() > lower_bound) 
-            break;
+            break; // if closest candidate is bigger than result's longest, quit.
         
         HnswNode* candidate_node = candidate.GetNode();
         unique_lock<mutex> lock(candidate_node->GetAccessGuard());
@@ -360,6 +367,7 @@ void HnswBuildImpl<DistFuncType>::SearchAtLayer(HnswNode* qnode, const vector<Hn
         for (const auto& neighbor : neighbors) {
             _mm_prefetch(neighbor->GetData(), _MM_HINT_T0);
         }
+        // visited all adjcent nodes, and find nearset nodes, insert into result(no more the ef_construction).
         for (const auto& neighbor : neighbors) {
             int id = neighbor->GetId();
             if (visited_list->NotVisited(id)) {

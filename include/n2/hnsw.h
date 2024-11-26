@@ -237,14 +237,14 @@ private:
     }
 
 private:
-    std::unique_ptr<HnswBuild> builder_;
-    std::shared_ptr<const HnswModel> model_;
+    std::unique_ptr<HnswBuild> builder_; // builder to build hnsw model
+    std::shared_ptr<const HnswModel> model_; // 
     std::shared_ptr<HnswSearch> searcher_;                      // for single-thread search
     std::vector<std::shared_ptr<HnswSearch>> searcher_pool_;    // for multi-threads batch search
 
-    size_t data_dim_;
-    DistanceKind metric_;
-    bool ensure_k_ = false;
+    size_t data_dim_; // data dimension
+    DistanceKind metric_;  // dist func calculation
+    bool ensure_k_ = false; // TODO(noneback): WHAT IT THIS FOR?
 };
 
 } // namespace n2

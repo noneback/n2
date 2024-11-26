@@ -17,3 +17,4 @@ GPATH
 _build/
 docs/api/
 docs/doxyoutput/
+tests/*
