@@ -57,7 +57,8 @@ HnswModel::HnswModel(const vector<HnswNode*> nodes, int enterpoint_id, int max_m
     memory_per_link_level0_ = sizeof(int) * (1 + 1 + max_m0);  // "1" for offset pos, "1" for saving num_links
     memory_per_node_level0_ = memory_per_link_level0_ + memory_per_data_;
     uint64_t level0_size = memory_per_node_level0_ * num_nodes_;
-
+    // calculate total size in bytes, including level0 + config + high level connections.
+    // NOTICE: this not a precise num, it should at least bigger than actual num.
     model_byte_size_ = model_config_size + level0_size + higher_level_size;
     model_ = new char[model_byte_size_];
     if (model_ == nullptr)
@@ -65,11 +66,12 @@ HnswModel::HnswModel(const vector<HnswNode*> nodes, int enterpoint_id, int max_m
                             + to_string(model_byte_size_ / (1024 * 1024)) + " MBytes)");
 
     memset(model_, 0, model_byte_size_);
+    // each important position
     model_level0_ = model_ + model_config_size;
     model_level0_node_base_offset_ = model_level0_ + memory_per_link_level0_;
     model_higher_level_ = model_level0_ + level0_size;
 
-
+    // organize model index format.Skip.
     SaveConfigToModel();
     int higher_offset = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
